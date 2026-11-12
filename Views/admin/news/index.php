@@ -1,0 +1,157 @@
+<?php require_once __DIR__ . '/../layouts/header.php'; ?>
+
+<!-- Stats header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-0 text-dark fw-bold">Quản lý tin tức</h4>
+        <span class="text-muted small font-sans">Viết và quản lý các bài viết tin tức, hướng dẫn mua sắm, review sản phẩm trên website</span>
+    </div>
+    <div>
+        <a href="<?= url('admin/news/create') ?>" class="btn btn-danger text-white px-4 fw-semibold" style="border-radius:10px; background: var(--admin-primary, #E53935); border: none;">
+            <i class="fas fa-plus me-1"></i>Viết bài mới
+        </a>
+    </div>
+</div>
+
+<!-- Filter card -->
+<div class="admin-card mb-4">
+    <div class="admin-card-body p-3">
+        <form method="GET" action="<?= url('admin/news') ?>" class="row g-2">
+            <!-- Search -->
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
+                    <input type="text" name="q" class="form-control bg-light border-start-0" placeholder="Tìm kiếm tiêu đề bài viết..." value="<?= e($search) ?>" style="font-size:0.88rem;">
+                </div>
+            </div>
+            
+            <!-- Status -->
+            <div class="col-md-3">
+                <select name="status" class="form-select bg-light" style="font-size:0.88rem;">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="published" <?= $filterStatus === 'published' ? 'selected' : '' ?>>Đã xuất bản (Published)</option>
+                    <option value="draft" <?= $filterStatus === 'draft' ? 'selected' : '' ?>>Bản nháp (Draft)</option>
+                </select>
+            </div>
+
+            <!-- Submit -->
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-danger w-100 fw-semibold" style="border-radius:8px; background:var(--admin-primary,#E53935); font-size: 0.85rem; border:none;">
+                    Lọc tin
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- News Table -->
+<div class="admin-card">
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width:120px;">Ảnh bìa</th>
+                    <th>Tiêu đề bài viết</th>
+                    <th>Chuyên mục</th>
+                    <th>Tác giả</th>
+                    <th class="text-center">Lượt xem</th>
+                    <th class="text-center">Ngày xuất bản</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th style="width: 110px;" class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($newsList)): ?>
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="fas fa-newspaper fs-2 text-muted mb-2 d-block"></i>
+                            <span class="text-muted small">Không tìm thấy bài viết nào</span>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($newsList as $item): ?>
+                        <tr>
+                            <td>
+                                <img src="<?= productImage($item['featured_image']) ?>" style="width:100px; height:55px; object-fit:cover; background:#F8F9FA; border-radius:6px; border:1px solid #e2e8f0;" alt="">
+                                <?php if (empty($item['featured_image'])): ?>
+                                    <span class="badge bg-warning-subtle text-warning d-block mt-1">Thiếu ảnh</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem; line-height: 1.4;" title="<?= e($item['title']) ?>">
+                                    <?= e(truncate($item['title'], 60)) ?>
+                                </div>
+                                <span class="text-muted small" style="font-size:0.75rem;"><?= e(truncate($item['excerpt'], 50)) ?></span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border small" style="font-size:0.75rem;">
+                                    <?php 
+                                    if ($item['category'] === 'cong-nghe') echo 'Tin Công nghệ';
+                                    elseif ($item['category'] === 'danh-gia') echo 'Đánh giá chi tiết';
+                                    elseif ($item['category'] === 'khuyen-mai') echo 'Khuyến mãi hot';
+                                    elseif ($item['category'] === 'meo-vat') echo 'Mẹo vặt hay';
+                                    else echo e($item['category']);
+                                    ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span style="font-size:0.85rem;"><i class="far fa-user me-1 text-muted"></i><?= e($item['author_name'] ?? 'Admin') ?></span>
+                            </td>
+                            <td class="text-center" style="font-size:0.85rem; font-weight:600; color:#475569;">
+                                <?= number_format($item['view_count']) ?>
+                            </td>
+                            <td class="text-center small" style="font-size:0.8rem; color:#64748b;">
+                                <?= !empty($item['published_at']) ? date('d/m/Y H:i', strtotime($item['published_at'])) : '<span class="text-muted italic">—</span>' ?>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge <?= $item['status'] === 'published' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning' ?> border" style="font-size:0.75rem; padding: 4px 10px; border-radius:12px;">
+                                    <?= $item['status'] === 'published' ? 'Đã đăng' : 'Bản nháp' ?>
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <a href="<?= url('admin/news/edit/' . $item['id']) ?>" class="btn-table-action edit" title="Chỉnh sửa">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn-table-action delete border-0 bg-transparent text-danger ms-1" title="Xóa" onclick="confirmDelete('<?= url('admin/news/delete/' . $item['id']) ?>', 'bài viết <?= addslashes($item['title']) ?>')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+<?php if ($totalPages > 1): ?>
+    <div class="mt-4">
+        <?php
+        $currentUrl = url('admin/news');
+        $queryParams = $_GET;
+        
+        echo '<nav><ul class="pagination justify-content-center">';
+        
+        if ($currentPage > 1) {
+            $queryParams['page'] = $currentPage - 1;
+            echo '<li class="page-item"><a class="page-link" href="' . $currentUrl . '?' . http_build_query($queryParams) . '"><i class="fas fa-chevron-left"></i></a></li>';
+        }
+        
+        for ($i = max(1, $currentPage - 2); $i <= min($totalPages, $currentPage + 2); $i++) {
+            $queryParams['page'] = $i;
+            $active = $i === $currentPage ? ' active' : '';
+            echo '<li class="page-item' . $active . '"><a class="page-link" href="' . $currentUrl . '?' . http_build_query($queryParams) . '">' . $i . '</a></li>';
+        }
+        
+        if ($currentPage < $totalPages) {
+            $queryParams['page'] = $currentPage + 1;
+            echo '<li class="page-item"><a class="page-link" href="' . $currentUrl . '?' . http_build_query($queryParams) . '"><i class="fas fa-chevron-right"></i></a></li>';
+        }
+        
+        echo '</ul></nav>';
+        ?>
+    </div>
+<?php endif; ?>
+
+<?php require_once __DIR__ . '/../layouts/footer.php'; ?>

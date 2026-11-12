@@ -1,0 +1,62 @@
+<?php
+/**
+ * Cấu hình ứng dụng
+ */
+
+// Tự động nhận diện môi trường (Nếu không phải localhost/127.0.0.1 thì là môi trường production)
+define('APP_ENV', (PHP_SAPI !== 'cli' && strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') === false && strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') === false) ? 'production' : 'local');
+
+if (APP_ENV === 'production') {
+    // Cấu hình Database cho hosting InfinityFree MỚI (MySQL)
+    define('DB_HOST', 'sql207.infinityfree.com');
+    define('DB_USER', 'if0_39800571');
+    define('DB_PASS', 'WteOfs2nEhHVDW');
+    define('DB_NAME', 'if0_39800571_shopbandienthoai');
+    define('DB_TYPE', 'mysql');
+} else {
+    // Cấu hình Database cho Local PC (SQL Server qua PowerShell)
+    define('DB_HOST', 'LAPTOP-64QR9LTM\VUVANHUAN');
+    define('DB_USER', ''); // Để trống để tự động sử dụng Windows Authentication
+    define('DB_PASS', '');
+    define('DB_NAME', 'webbandienthoaimoi');
+    define('DB_TYPE', 'mssql_ps');
+}
+
+// Cấu hình ứng dụng
+define('APP_NAME', 'Vũ Huân Shop');
+// Tự động nhận diện domain và port để tránh lỗi load tài nguyên khi đổi cổng chạy (8085 -> 8000)
+$protocol = (
+    (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
+    ($_SERVER['SERVER_PORT'] ?? 80) == 443 || 
+    (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+) ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
+define('APP_URL', $protocol . $host);
+define('UPLOAD_DIR', 'public/uploads/');
+define('MAX_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB
+
+// Cấu hình session
+define('SESSION_TIMEOUT', 30 * 60); // 30 phút
+
+// Cấu hình email
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_PORT', 587);
+define('SMTP_USER', 'vuhuan123890@gmail.com');
+define('SMTP_PASS', 'tyrxrvhxblwwnnoj');
+define('ADMIN_EMAIL', 'vuhuan123890@gmail.com');
+
+// Cấu hình phân quyền
+define('ROLE_ADMIN', 'admin');
+define('ROLE_STAFF', 'staff');
+define('ROLE_CUSTOMER', 'customer');
+define('ROLE_GUEST', 'guest');
+
+// Cấu hình sản phẩm
+define('PRODUCTS_PER_PAGE', 12);
+define('REVIEWS_PER_PAGE', 5);
+
+// Cấu hình vận chuyển
+define('SHIPPING_FEE_FREE_AMOUNT', 500000); // Miễn phí vận chuyển từ 500k
+define('SHIPPING_FEE_STANDARD', 30000); // Phí vận chuyển tiêu chuẩn
+
+?>

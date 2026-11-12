@@ -1,0 +1,96 @@
+<?php
+class NewsModel {
+    private $db;
+    public function __construct() { $this->db = new Database(); }
+    
+    public function getPublished($page = 1, $limit = 9, $category = '') {
+        $offset = ($page - 1) * $limit;
+        $where = "WHERE n.status='published'";
+        $params = [];
+        if ($category) { $where .= " AND n.category=:cat"; $params[':cat'] = $category; }
+        $stmt = $this->db->query("SELECT n.*, u.full_name as author_name FROM news n LEFT JOIN users u ON n.author_id = u.id $where ORDER BY n.published_at DESC LIMIT :limit OFFSET :offset")
+            ->bind(':limit', $limit)->bind(':offset', $offset);
+        foreach ($params as $k => $v) $stmt->bind($k, $v);
+        return $stmt->resultSet();
+    }
+    
+    public function countPublished($category = '') {
+        $where = "WHERE status='published'";
+        if ($category) $where .= " AND category=:cat";
+        $stmt = $this->db->query("SELECT COUNT(*) as total FROM news $where");
+        if ($category) $stmt->bind(':cat', $category);
+        $result = $stmt->single();
+        return $result['total'] ?? 0;
+    }
+    
+    public function findBySlug($slug) {
+        return $this->db->query("SELECT n.*, u.full_name as author_name FROM news n LEFT JOIN users u ON n.author_id = u.id WHERE n.slug=:slug AND n.status='published'")
+            ->bind(':slug', $slug)->single();
+    }
+    
+    public function findById($id) {
+        return $this->db->query("SELECT n.*, u.full_name as author_name FROM news n LEFT JOIN users u ON n.author_id = u.id WHERE n.id=:id")
+            ->bind(':id', $id)->single();
+    }
+    
+    public function incrementView($id) {
+        $this->db->query("UPDATE news SET view_count=view_count+1 WHERE id=:id")->bind(':id', $id)->execute();
+    }
+    
+    public function getRecent($limit = 5) {
+        return $this->db->query("SELECT * FROM news WHERE status='published' ORDER BY published_at DESC LIMIT :limit")->bind(':limit', $limit)->resultSet();
+    }
+    
+    public function getAll($page = 1, $limit = 20, $search = '', $status = '') {
+        $offset = ($page - 1) * $limit;
+        $where = "WHERE 1=1";
+        $params = [];
+        if ($search) { $where .= " AND (n.title LIKE :s OR n.category LIKE :s)"; $params[':s'] = '%' . $search . '%'; }
+        if ($status) { $where .= " AND n.status=:status"; $params[':status'] = $status; }
+        $stmt = $this->db->query("SELECT n.*, u.full_name as author_name FROM news n LEFT JOIN users u ON n.author_id = u.id $where ORDER BY n.created_at DESC LIMIT :limit OFFSET :offset")
+            ->bind(':limit', $limit)->bind(':offset', $offset);
+        foreach ($params as $k => $v) $stmt->bind($k, $v);
+        return $stmt->resultSet();
+    }
+    
+    public function count($search = '', $status = '') {
+        $where = "WHERE 1=1";
+        if ($search) $where .= " AND (title LIKE '%" . addslashes($search) . "%')";
+        if ($status) $where .= " AND status='$status'";
+        $result = $this->db->query("SELECT COUNT(*) as total FROM news $where")->single();
+        return $result['total'] ?? 0;
+    }
+    
+    public function create($data) {
+        $slug = createSlug($data['title']);
+        $this->db->query("INSERT INTO news (title, slug, content, excerpt, featured_image, author_id, category, status, published_at) VALUES (:title, :slug, :content, :excerpt, :featured_image, :author_id, :category, :status, :published_at)")
+            ->bind(':title', $data['title'])
+            ->bind(':slug', $slug . '-' . time())
+            ->bind(':content', $data['content'])
+            ->bind(':excerpt', $data['excerpt'] ?? null)
+            ->bind(':featured_image', $data['featured_image'] ?? null)
+            ->bind(':author_id', $data['author_id'])
+            ->bind(':category', $data['category'] ?? 'general')
+            ->bind(':status', $data['status'] ?? 'draft')
+            ->bind(':published_at', $data['status'] === 'published' ? date('Y-m-d H:i:s') : null)
+            ->execute();
+        return $this->db->lastInsertId();
+    }
+    
+    public function update($id, $data) {
+        return $this->db->query("UPDATE news SET title=:title, content=:content, excerpt=:excerpt, featured_image=:featured_image, category=:category, status=:status, published_at=:published_at WHERE id=:id")
+            ->bind(':title', $data['title'])
+            ->bind(':content', $data['content'])
+            ->bind(':excerpt', $data['excerpt'] ?? null)
+            ->bind(':featured_image', $data['featured_image'] ?? null)
+            ->bind(':category', $data['category'] ?? 'general')
+            ->bind(':status', $data['status'] ?? 'draft')
+            ->bind(':published_at', $data['status'] === 'published' ? date('Y-m-d H:i:s') : null)
+            ->bind(':id', $id)->execute();
+    }
+
+    public function delete($id) {
+        return $this->db->query("DELETE FROM news WHERE id=:id")->bind(':id', $id)->execute();
+    }
+}
+?>

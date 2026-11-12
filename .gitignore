@@ -1,0 +1,49 @@
+# ============================================================
+# .gitignore cho Vũ Huân Shop (PHP MVC)
+# TUYỆT ĐỐI KHÔNG commit .env chứa khóa/mật khẩu thật
+# ============================================================
+
+# --- Môi trường & bí mật (QUAN TRỌNG) ---
+.env
+.env.local
+.env.*.local
+.env.example.bak
+
+# --- PHP / Composer ---
+vendor/
+vendor.php
+composer.lock
+
+# --- Build /存档 (không nén lên Git) ---
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# --- Logs ---
+*.log
+storage/logs/*.log
+runtime/logs/*.log
+
+# --- Database dumps (giữ file schema trong database/, bỏ các file xuất ra) ---
+*.sqlite
+*.sqlite3
+database/*.sqlite
+
+# --- IDE & OS ---
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# --- Testing ---
+.phpunit.cache
+.phpunit.result.cache
+coverage/
+
+# --- Tệp hệ thống hosting ---
+cgi-bin/
+.ftpquota

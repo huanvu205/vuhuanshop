@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#f5f5f5"/>
+  <circle cx="200" cy="160" r="50" fill="#e0e0e0"/>
+  <circle cx="200" cy="160" r="15" fill="#bdbdbd"/>
+  <rect x="140" y="220" width="120" height="60" rx="8" fill="#e0e0e0"/>
+  <text x="200" y="300" font-family="Arial, sans-serif" font-size="16" fill="#999999" text-anchor="middle">Không có ảnh</text>
+</svg>

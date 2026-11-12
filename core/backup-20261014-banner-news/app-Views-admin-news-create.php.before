@@ -1,0 +1,130 @@
+<?php require_once __DIR__ . '/../layouts/header.php'; ?>
+
+<style>
+.image-preview-box {
+    width: 200px;
+    height: 110px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-color: #f8fafc;
+    margin-bottom: 12px;
+}
+.image-preview-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-0 text-dark fw-bold">Viết bài viết mới</h4>
+        <span class="text-muted small">Soạn thảo và đăng tải bài viết lên trang tin tức công nghệ</span>
+    </div>
+    <div>
+        <a href="<?= url('admin/news') ?>" class="btn btn-light border px-4 fw-semibold" style="border-radius:10px;">
+            <i class="fas fa-arrow-left me-1"></i>Quay lại
+        </a>
+    </div>
+</div>
+
+<form action="<?= url('admin/news/create') ?>" method="POST" enctype="multipart/form-data">
+    <?= csrfToken() ?>
+
+    <div class="row g-4">
+        <!-- Main editor content (Left) -->
+        <div class="col-lg-8">
+            <div class="admin-card mb-4">
+                <div class="admin-card-header">
+                    <h5 class="admin-card-title"><i class="fas fa-edit text-primary"></i> Nội dung bài viết</h5>
+                </div>
+                <div class="admin-card-body p-4">
+                    <div class="row g-3">
+                        <!-- Title -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark small" for="news_title">Tiêu đề bài viết <span class="text-danger">*</span></label>
+                            <input type="text" id="news_title" name="title" class="form-control form-control-lg" placeholder="Nhập tiêu đề hấp dẫn..." style="border-radius:10px;" required>
+                        </div>
+
+                        <!-- Excerpt -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark small" for="news_excerpt">Tóm tắt ngắn (Excerpt) <span class="text-danger">*</span></label>
+                            <textarea id="news_excerpt" name="excerpt" class="form-control" rows="3" placeholder="Nhập một đoạn tóm tắt ngắn về bài viết để hiển thị ở ngoài danh sách..." style="border-radius:8px;" required></textarea>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark small" for="news_content">Nội dung chi tiết bài viết <span class="text-danger">*</span></label>
+                            <textarea id="news_content" name="content" class="form-control" rows="15" placeholder="Soạn thảo nội dung bài viết bằng mã HTML hoặc văn bản thường..." style="border-radius:8px;" required></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meta settings Sidebar (Right) -->
+        <div class="col-lg-4">
+            <!-- Classification card -->
+            <div class="admin-card mb-4">
+                <div class="admin-card-header">
+                    <h5 class="admin-card-title"><i class="fas fa-folder text-primary"></i> Phân mục & Đăng tải</h5>
+                </div>
+                <div class="admin-card-body p-4">
+                    <div class="row g-3">
+                        <!-- Category -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark small" for="news_category">Chuyên mục bài viết</label>
+                            <select id="news_category" name="category" class="form-select" style="border-radius:8px;">
+                                <option value="cong-nghe">Tin Công nghệ (Technology)</option>
+                                <option value="danh-gia">Đánh giá sản phẩm (Reviews)</option>
+                                <option value="khuyen-mai">Khuyến mãi cực hot (Promotions)</option>
+                                <option value="meo-vat">Mẹo vặt công nghệ (Tips & Tricks)</option>
+                            </select>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark small" for="news_status">Trạng thái xuất bản</label>
+                            <select id="news_status" name="status" class="form-select" style="border-radius:8px;">
+                                <option value="draft">Bản nháp (Draft - Lưu tạm ẩn)</option>
+                                <option value="published">Xuất bản (Published - Hiển thị ngay)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Cover card -->
+            <div class="admin-card mb-4">
+                <div class="admin-card-header">
+                    <h5 class="admin-card-title"><i class="fas fa-image text-primary"></i> Ảnh đại diện bài viết</h5>
+                </div>
+                <div class="admin-card-body p-4">
+                    <div class="image-preview-box mx-auto">
+                        <img id="news-preview" src="<?= APP_URL ?>/public/images/no-image.png" alt="Preview">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small" for="featured_image">Chọn ảnh đại diện <span class="text-danger">*</span></label>
+                        <input type="file" id="featured_image" name="featured_image" class="form-control" accept="image/*" onchange="previewImage(this, 'news-preview')" required>
+                        <small class="text-muted d-block mt-1" style="font-size:0.75rem;">Kích thước tỷ lệ 16:9 (khoảng 800x450px) là tốt nhất. Dung lượng dưới 2MB.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit action -->
+            <div class="admin-card">
+                <div class="admin-card-body p-4">
+                    <button type="submit" class="btn btn-danger w-100 py-2.5 fw-bold" style="border-radius:10px; background:var(--admin-primary,#E53935); border:none;">
+                        <i class="fas fa-save me-1"></i>Lưu bài viết
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<?php require_once __DIR__ . '/../layouts/footer.php'; ?>

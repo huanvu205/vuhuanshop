@@ -1,0 +1,45 @@
+RewriteEngine On
+RewriteBase /
+
+# Chặn truy cập file nhạy cảm
+RewriteRule ^core/ - [F,L]
+RewriteRule ^database/ - [F,L]
+RewriteRule ^app/Models/ - [F,L]
+RewriteRule ^app/Controllers/ - [F,L]
+
+# Cho phép truy cập file thực tế
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Redirect tất cả về index.php
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Bảo mật (Tắt Options -Indexes để tránh lỗi 500 trên hosting free)
+# Options -Indexes
+ServerSignature Off
+
+# Cache tài nguyên tĩnh
+<FilesMatch "\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2)$">
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+    Header set Cache-Control "public"
+</FilesMatch>
+
+# Bảo vệ file config
+<Files "Config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Gzip compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>

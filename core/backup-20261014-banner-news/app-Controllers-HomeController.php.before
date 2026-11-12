@@ -1,0 +1,84 @@
+<?php
+/**
+ * HomeController - Trang chủ
+ */
+class HomeController extends Controller {
+    private $productModel;
+    private $categoryModel;
+    private $bannerModel;
+    private $newsModel;
+    private $brandModel;
+    
+    public function __construct() {
+        parent::__construct();
+        $this->productModel = new ProductModel();
+        $this->categoryModel = new CategoryModel();
+        $this->bannerModel = new BannerModel();
+        $this->newsModel = new NewsModel();
+        $this->brandModel = new BrandModel();
+    }
+    
+    public function index() {
+        $settingModel = new SettingModel();
+        $flashSaleEnd = $settingModel->get('flash_sale_end', date('Y-m-d 23:59:59'));
+        
+        $data = [
+            'title' => APP_NAME . ' - Mua điện thoại, laptop, tablet chính hãng',
+            'banners' => $this->bannerModel->getActive('home_slider'),
+            'categories' => $this->categoryModel->getWithProductCount(),
+            'featuredProducts' => $this->productModel->getFeatured(8),
+            'newProducts' => $this->productModel->getNew(8),
+            'bestSelling' => $this->productModel->getBestSelling(8),
+            'hotDeals' => $this->productModel->getHotDeal(8),
+            'recentNews' => $this->newsModel->getRecent(4),
+            'brands' => $this->brandModel->getPopular(10),
+            'flashSaleEnd' => $flashSaleEnd,
+        ];
+        
+        $this->view('home.index', $data);
+    }
+    
+    public function subscribe() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Phương thức không hợp lệ'], 405);
+            return;
+        }
+        
+        $email = trim($this->getInput('email', ''));
+        
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->json(['success' => false, 'message' => 'Vui lòng nhập địa chỉ email hợp lệ']);
+            return;
+        }
+        
+        try {
+            // Tự động tạo bảng nếu chưa có
+            $this->db->query("IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='newsletter_subscribers' AND xtype='U')
+                BEGIN
+                    CREATE TABLE newsletter_subscribers (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        email NVARCHAR(100) NOT NULL UNIQUE,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                END")->execute();
+                
+            // Kiểm tra email đã đăng ký chưa
+            $exist = $this->db->query("SELECT id FROM newsletter_subscribers WHERE email = :email")
+                ->bind(':email', $email)->single();
+                
+            if ($exist) {
+                $this->json(['success' => false, 'message' => 'Email này đã đăng ký nhận tin từ trước rồi']);
+                return;
+            }
+            
+            // Lưu vào database
+            $this->db->query("INSERT INTO newsletter_subscribers (email) VALUES (:email)")
+                ->bind(':email', $email)->execute();
+                
+            $this->json(['success' => true, 'message' => 'Đăng ký nhận ưu đãi thành công!']);
+        } catch (Exception $e) {
+            $this->json(['success' => false, 'message' => 'Đã xảy ra lỗi: ' . $e->getMessage()]);
+        }
+    }
+}
+?>

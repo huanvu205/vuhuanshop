@@ -1,0 +1,652 @@
+/**
+ * TechShop - Main JavaScript
+ * Cart, Search AJAX, Wishlist, Toast, etc.
+ */
+
+const APP_URL = document.querySelector('meta[name="app-url"]')?.content || '';
+
+/* ===== Toast Notifications ===== */
+const Toast = {
+    container: null,
+    
+    init() {
+        if (!this.container) {
+            this.container = document.createElement('div');
+            this.container.className = 'toast-container';
+            document.body.appendChild(this.container);
+        }
+    },
+    
+    show(message, type = 'success', duration = 3500) {
+        this.init();
+        
+        const icons = { success: 'fas fa-check-circle', error: 'fas fa-exclamation-circle', warning: 'fas fa-exclamation-triangle', info: 'fas fa-info-circle' };
+        const colors = { success: '#2E7D32', error: '#E53935', warning: '#FF6F00', info: '#1565C0' };
+        
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        toast.innerHTML = `
+            <i class="${icons[type] || icons.info}" style="color:${colors[type]}; font-size:18px; flex-shrink:0"></i>
+            <span style="font-size:13px; font-weight:500; flex:1">${message}</span>
+            <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#999;padding:0;margin-left:4px"><i class="fas fa-times"></i></button>
+        `;
+        
+        this.container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    },
+    
+    success: (msg) => Toast.show(msg, 'success'),
+    error: (msg) => Toast.show(msg, 'error'),
+    warning: (msg) => Toast.show(msg, 'warning'),
+    info: (msg) => Toast.show(msg, 'info'),
+};
+
+/* ===== Cart Functions ===== */
+const Cart = {
+    count: parseInt(document.querySelector('.cart-count')?.textContent || '0'),
+    
+    updateCount(count) {
+        this.count = count;
+        document.querySelectorAll('.cart-count').forEach(el => {
+            el.textContent = count;
+            el.style.display = count > 0 ? 'flex' : 'none';
+        });
+    },
+    
+    async add(productId, quantity = 1, btn = null) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang thêm...';
+        }
+        
+        try {
+            const res = await fetch(`${APP_URL}/cart/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    product_id: productId,
+                    quantity: quantity,
+                    csrf_token: document.querySelector('meta[name="csrf-token"]')?.content || ''
+                })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                Toast.success(data.message);
+                this.updateCount(data.cartCount);
+                this.animateCartIcon();
+            } else {
+                Toast.error(data.message);
+            }
+        } catch (e) {
+            Toast.error('Lỗi kết nối. Vui lòng thử lại.');
+        }
+        
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-cart-plus me-1"></i>Thêm vào giỏ';
+        }
+    },
+    
+    animateCartIcon() {
+        const icon = document.querySelector('.cart-icon');
+        if (icon) {
+            icon.classList.add('shake');
+            setTimeout(() => icon.classList.remove('shake'), 600);
+        }
+    },
+    
+    async updateQuantity(itemId, quantity) {
+        try {
+            const res = await fetch(`${APP_URL}/cart/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ item_id: itemId, quantity, csrf_token: getCsrf() })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.querySelector('#subtotal')?.textContent !== undefined && (document.querySelector('#subtotal').textContent = data.subtotal);
+                document.querySelector('#shipping-fee')?.textContent !== undefined && (document.querySelector('#shipping-fee').textContent = data.shippingFee);
+                
+                // Cập nhật chiết khấu động
+                const discountRow = document.querySelector('#discount-row');
+                const discountAmount = document.querySelector('#discount-amount');
+                const appliedCoupon = document.querySelector('#applied-coupon');
+                if (discountRow) {
+                    if (data.discountRaw > 0) {
+                        discountRow.classList.remove('d-none');
+                        if (discountAmount) discountAmount.textContent = data.discount;
+                        if (appliedCoupon && data.couponCode) appliedCoupon.textContent = data.couponCode;
+                    } else {
+                        discountRow.classList.add('d-none');
+                        if (appliedCoupon && appliedCoupon.textContent !== '') {
+                            location.reload();
+                            return;
+                        }
+                    }
+                }
+                
+                document.querySelector('#total-amount')?.textContent !== undefined && (document.querySelector('#total-amount').textContent = data.total);
+                
+                // Update item row subtotal
+                const itemTotalEl = document.querySelector(`.item-total[data-item="${itemId}"]`);
+                if (itemTotalEl && data.itemTotal) {
+                    itemTotalEl.textContent = '= ' + data.itemTotal;
+                }
+                
+                this.updateCount(data.cartCount);
+            }
+        } catch(e) {}
+    },
+    
+    async remove(itemId) {
+        try {
+            const res = await fetch(`${APP_URL}/cart/remove`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ item_id: itemId, csrf_token: getCsrf() })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const row = document.querySelector(`[data-item="${itemId}"]`);
+                if (row) { 
+                    row.style.transition = 'all 0.3s'; 
+                    row.style.opacity = '0'; 
+                    setTimeout(() => { 
+                        row.remove(); 
+                        location.reload(); 
+                    }, 300); 
+                } else {
+                    location.reload();
+                }
+                this.updateCount(data.cartCount);
+                Toast.success('Đã xóa sản phẩm');
+            }
+        } catch(e) {}
+    }
+};
+
+/* ===== Wishlist ===== */
+const Wishlist = {
+    async toggle(productId, btn) {
+        try {
+            const res = await fetch(`${APP_URL}/wishlist/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ product_id: productId, csrf_token: getCsrf() })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const icon = btn.querySelector('i');
+                if (data.added) { icon.className = 'fas fa-heart'; btn.classList.add('active'); } 
+                else { icon.className = 'far fa-heart'; btn.classList.remove('active'); }
+                Toast.show(data.message, data.added ? 'success' : 'info');
+            } else if (res.status === 302 || !data.success) {
+                window.location.href = `${APP_URL}/auth/login`;
+            }
+        } catch(e) {}
+    }
+};
+
+/* ===== AJAX Search ===== */
+const Search = {
+    timeout: null,
+    input: null,
+    suggestions: null,
+    
+    init() {
+        this.input = document.querySelector('#search-input');
+        this.suggestions = document.querySelector('#search-suggestions');
+        
+        if (!this.input || !this.suggestions) return;
+        
+        this.input.addEventListener('input', () => this.onInput());
+        this.input.addEventListener('keydown', (e) => this.onKeyDown(e));
+        
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-wrapper')) this.hide();
+        });
+    },
+    
+    async onInput() {
+        const q = this.input.value.trim();
+        clearTimeout(this.timeout);
+        
+        if (q.length < 2) { this.hide(); return; }
+        
+        this.timeout = setTimeout(async () => {
+            try {
+                const res = await fetch(`${APP_URL}/search?q=${encodeURIComponent(q)}&ajax=1`);
+                const data = await res.json();
+                this.render(data.products, q);
+            } catch(e) {}
+        }, 300);
+    },
+    
+    render(products, q) {
+        if (!products.length) { this.suggestions.innerHTML = '<div class="p-3 text-muted text-center" style="font-size:13px"><i class="fas fa-search me-2"></i>Không tìm thấy sản phẩm phù hợp</div>'; }
+        else {
+            this.suggestions.innerHTML = products.map(p => `
+                <a href="${p.url}" class="suggestion-item">
+                    <img src="${p.image}" alt="${p.name}" onerror="this.src='${APP_URL}/public/images/no-image.png'">
+                    <div class="flex-1">
+                        <div class="suggestion-item-name">${p.name}</div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="suggestion-item-price">${p.price}</span>
+                            <span style="font-size:11px;color:#9E9E9E">${p.brand}</span>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+        
+        const viewAll = `<a href="${APP_URL}/search?q=${encodeURIComponent(q)}" class="suggestion-item" style="justify-content:center;color:#E53935;font-weight:600"><i class="fas fa-search me-2"></i>Xem tất cả kết quả cho "${q}"</a>`;
+        this.suggestions.innerHTML += viewAll;
+        this.show();
+    },
+    
+    show() { this.suggestions.classList.add('show'); },
+    hide() { this.suggestions?.classList.remove('show'); },
+    
+    onKeyDown(e) {
+        if (e.key === 'Enter') {
+            this.hide();
+            window.location.href = `${APP_URL}/search?q=${encodeURIComponent(this.input.value.trim())}`;
+        }
+        if (e.key === 'Escape') this.hide();
+    }
+};
+
+/* ===== Gallery (Product Detail) ===== */
+const Gallery = {
+    init() {
+        const mainImg = document.querySelector('#gallery-main');
+        const thumbs = document.querySelectorAll('.gallery-thumb');
+        
+        if (!mainImg) return;
+        
+        thumbs.forEach(thumb => {
+            thumb.addEventListener('click', () => {
+                mainImg.src = thumb.dataset.full || thumb.querySelector('img').src;
+                thumbs.forEach(t => t.classList.remove('active'));
+                thumb.classList.add('active');
+            });
+        });
+    }
+};
+
+/* ===== Quantity Selector ===== */
+const Quantity = {
+    init() {
+        document.querySelectorAll('.qty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = btn.closest('.product-quantity-selector')?.querySelector('.qty-input');
+                if (!input) return;
+                
+                let val = parseInt(input.value) || 1;
+                const max = parseInt(input.max) || 999;
+                const min = parseInt(input.min) || 1;
+                
+                if (btn.dataset.action === 'increase') val = Math.min(val + 1, max);
+                else val = Math.max(val - 1, min);
+                
+                input.value = val;
+            });
+        });
+    }
+};
+
+/* ===== Coupon Apply ===== */
+const Coupon = {
+    async apply() {
+        const code = document.querySelector('#coupon-code')?.value?.trim();
+        const amount = parseFloat(document.querySelector('#subtotal-raw')?.value || 0);
+        
+        if (!code) { Toast.warning('Vui lòng nhập mã giảm giá'); return; }
+        
+        const btn = document.querySelector('#apply-coupon-btn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+        
+        try {
+            const res = await fetch(`${APP_URL}/checkout/apply-coupon`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ coupon_code: code, order_amount: amount, csrf_token: getCsrf() })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                Toast.success(data.message);
+                document.querySelector('#discount-row')?.classList.remove('d-none');
+                document.querySelector('#discount-amount') && (document.querySelector('#discount-amount').textContent = data.discount);
+                document.querySelector('#applied-coupon') && (document.querySelector('#applied-coupon').textContent = data.couponCode);
+                // Recalculate total
+                const subtotal = parseFloat(document.querySelector('#subtotal-raw')?.value || 0);
+                const shipping = parseFloat(document.querySelector('#shipping-raw')?.value || 0);
+                const discount = parseFloat(data.discountRaw || 0);
+                const total = subtotal + shipping - discount;
+                document.querySelector('#total-amount') && (document.querySelector('#total-amount').textContent = formatPrice(total));
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                Toast.error(data.message);
+            }
+        } catch(e) { Toast.error('Lỗi kết nối'); }
+        
+        if (btn) { btn.disabled = false; btn.innerHTML = 'Áp dụng'; }
+    },
+    
+    async remove() {
+        const btn = document.querySelector('#remove-coupon-btn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+        
+        try {
+            const res = await fetch(`${APP_URL}/checkout/remove-coupon`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ csrf_token: getCsrf() })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                Toast.success(data.message);
+                setTimeout(() => location.reload(), 800);
+            } else {
+                Toast.error(data.message || 'Lỗi khi gỡ mã giảm giá');
+            }
+        } catch(e) { Toast.error('Lỗi kết nối'); }
+        
+        if (btn) { btn.disabled = false; btn.innerHTML = 'Hủy'; }
+    }
+};
+
+/* ===== Back to Top ===== */
+const BackToTop = {
+    btn: null,
+    init() {
+        this.btn = document.querySelector('.back-to-top');
+        if (!this.btn) return;
+        
+        window.addEventListener('scroll', () => {
+            this.btn.classList.toggle('show', window.scrollY > 400);
+        });
+        
+        this.btn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+};
+
+/* ===== Countdown Timer (Hot Deal) ===== */
+const Timer = {
+    init() {
+        const timerEl = document.querySelector('#countdown-timer');
+        if (!timerEl) return;
+        
+        const endTime = new Date(timerEl.dataset.end || '').getTime();
+        
+        const update = () => {
+            const now = Date.now();
+            const diff = Math.max(0, endTime - now);
+            
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            
+            const fmt = n => String(n).padStart(2, '0');
+            
+            const hEl = timerEl.querySelector('.timer-h');
+            const mEl = timerEl.querySelector('.timer-m');
+            const sEl = timerEl.querySelector('.timer-s');
+            
+            if (hEl) hEl.textContent = fmt(h);
+            if (mEl) mEl.textContent = fmt(m);
+            if (sEl) sEl.textContent = fmt(s);
+            
+            if (diff === 0) clearInterval(interval);
+        };
+        
+        const interval = setInterval(update, 1000);
+        update();
+    }
+};
+
+/* ===== Cart Page Actions ===== */
+function initCartPage() {
+    // Update qty
+    document.querySelectorAll('.cart-qty-input').forEach(input => {
+        let timeout;
+        input.addEventListener('change', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                Cart.updateQuantity(input.dataset.item, input.value);
+            }, 500);
+        });
+    });
+    
+    // Remove item
+    document.querySelectorAll('.cart-remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (confirm('Xóa sản phẩm này khỏi giỏ hàng?')) {
+                Cart.remove(btn.dataset.item);
+            }
+        });
+    });
+}
+
+/* ===== Payment Method Selection ===== */
+function initPaymentMethods() {
+    document.querySelectorAll('.payment-method-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.payment-method-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            const radio = card.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+            
+            // Show/hide bank info
+            const method = card.dataset.method;
+            document.querySelectorAll('.payment-info').forEach(el => el.classList.add('d-none'));
+            const info = document.querySelector(`#payment-info-${method}`);
+            if (info) info.classList.remove('d-none');
+        });
+    });
+}
+
+/* ===== Utilities ===== */
+function getCsrf() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || 
+           document.querySelector('input[name="csrf_token"]')?.value || '';
+}
+
+function formatPrice(amount) {
+    return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+}
+
+function animateNumber(el, target, duration = 800) {
+    const start = 0;
+    const startTime = performance.now();
+    
+    const update = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.floor(start + eased * (target - start)).toLocaleString();
+        if (progress < 1) requestAnimationFrame(update);
+    };
+    
+    requestAnimationFrame(update);
+}
+
+/* ===== Product Review Form ===== */
+function initReviewForm() {
+    const stars = document.querySelectorAll('.review-star');
+    const ratingInput = document.querySelector('#review-rating');
+    
+    if (!stars.length) return;
+    
+    stars.forEach(star => {
+        star.addEventListener('mouseover', () => {
+            const rating = star.dataset.rating;
+            stars.forEach(s => {
+                s.classList.toggle('active', s.dataset.rating <= rating);
+            });
+        });
+        
+        star.addEventListener('click', () => {
+            const rating = star.dataset.rating;
+            if (ratingInput) ratingInput.value = rating;
+        });
+        
+        star.addEventListener('mouseleave', () => {
+            const selected = ratingInput?.value || 0;
+            stars.forEach(s => s.classList.toggle('active', s.dataset.rating <= selected));
+        });
+    });
+    
+    const form = document.querySelector('#review-form');
+    if (!form) return;
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = form.querySelector('[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+        
+        try {
+            const res = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form)
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                Toast.success(data.message);
+                form.reset();
+                stars.forEach(s => s.classList.remove('active'));
+            } else {
+                Toast.error(data.message || 'Gửi đánh giá thất bại');
+            }
+        } catch(e) { Toast.error('Lỗi kết nối'); }
+        
+        btn.disabled = false;
+        btn.innerHTML = 'Gửi đánh giá';
+    });
+}
+
+/* ===== Initialize ===== */
+document.addEventListener('DOMContentLoaded', () => {
+    Search.init();
+    Gallery.init();
+    Quantity.init();
+    BackToTop.init();
+    Timer.init();
+    initCartPage();
+    initPaymentMethods();
+    initReviewForm();
+    
+    // Add to cart buttons
+    document.querySelectorAll('.btn-add-cart').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const productId = btn.dataset.product;
+            const qty = parseInt(document.querySelector('.qty-input')?.value || 1);
+            Cart.add(productId, qty, btn);
+        });
+    });
+    
+    // Buy now buttons
+    document.querySelectorAll('.btn-buy-now').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const productId = btn.dataset.product;
+            const qty = parseInt(document.querySelector('.qty-input')?.value || 1);
+            
+            try {
+                const res = await fetch(`${APP_URL}/checkout/buy-now`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        product_id: productId,
+                        quantity: qty,
+                        csrf_token: getCsrf()
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = `${APP_URL}/checkout`;
+                } else {
+                    Toast.error(data.message || 'Lỗi xử lý mua ngay');
+                }
+            } catch(err) {
+                Toast.error('Lỗi kết nối. Vui lòng thử lại.');
+            }
+        });
+    });
+    
+    // Wishlist buttons
+    document.querySelectorAll('.btn-wishlist').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            Wishlist.toggle(btn.dataset.product, btn);
+        });
+    });
+    
+    // Apply coupon
+    document.querySelector('#apply-coupon-btn')?.addEventListener('click', () => Coupon.apply());
+    document.querySelector('#remove-coupon-btn')?.addEventListener('click', () => Coupon.remove());
+    document.querySelector('#coupon-code')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') Coupon.apply(); });
+    
+    // Newsletter signup
+    const newsletterBtn = document.querySelector('#newsletter-btn');
+    const newsletterEmail = document.querySelector('#newsletter-email');
+    if (newsletterBtn && newsletterEmail) {
+        const subscribe = async () => {
+            const email = newsletterEmail.value.trim();
+            if (!email) {
+                Toast.warning('Vui lòng nhập địa chỉ email');
+                return;
+            }
+            
+            newsletterBtn.disabled = true;
+            const originalText = newsletterBtn.textContent;
+            newsletterBtn.textContent = 'Đang gửi...';
+            
+            try {
+                const res = await fetch(`${APP_URL}/home/subscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        email: email,
+                        csrf_token: getCsrf()
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    Toast.success(data.message);
+                    newsletterEmail.value = '';
+                } else {
+                    Toast.error(data.message || 'Đăng ký thất bại');
+                }
+            } catch (err) {
+                Toast.error('Lỗi kết nối. Vui lòng thử lại.');
+            } finally {
+                newsletterBtn.disabled = false;
+                newsletterBtn.textContent = originalText;
+            }
+        };
+        newsletterBtn.addEventListener('click', subscribe);
+        newsletterEmail.addEventListener('keypress', (e) => { if (e.key === 'Enter') subscribe(); });
+    }
+    
+    // CSS shake animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+        .shake { animation: shake 0.5s ease; }
+    `;
+    document.head.appendChild(style);
+});

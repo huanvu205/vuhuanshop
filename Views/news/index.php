@@ -1,0 +1,341 @@
+<?php
+/** @var array $newsList */
+/** @var string|null $category */
+/** @var int $totalPages */
+/** @var int $currentPage */
+$newsList    = $newsList ?? [];
+$category    = $category ?? null;
+$totalPages  = $totalPages ?? 1;
+$currentPage = $currentPage ?? 1;
+require_once __DIR__ . '/../layouts/header.php';
+?>
+
+<style>
+/* Modern News Page Styles */
+.news-hero {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    padding: 50px 0;
+    color: white;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+}
+.news-hero::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(229,57,53,0.1);
+}
+.news-hero-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+}
+.news-hero-subtitle {
+    font-size: 1rem;
+    color: #94a3b8;
+    max-width: 600px;
+}
+
+/* Category pills */
+.news-nav {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 30px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+}
+.news-nav::-webkit-scrollbar { display: none; }
+.news-nav-link {
+    padding: 10px 20px;
+    border-radius: 30px;
+    background-color: #f1f5f9;
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.news-nav-link:hover {
+    background-color: #e2e8f0;
+    color: var(--primary);
+}
+.news-nav-link.active {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(229,57,53,0.25);
+}
+
+/* News Grid Cards */
+.news-card-modern {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 1px solid #f1f5f9;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s;
+}
+.news-card-modern:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    border-color: #e2e8f0;
+}
+.news-card-img-wrap {
+    position: relative;
+    padding-top: 56.25%; /* 16:9 Aspect Ratio */
+    overflow: hidden;
+    background: #f1f5f9;
+}
+.news-card-img-wrap img {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.35s ease;
+}
+.news-card-modern:hover .news-card-img-wrap img {
+    transform: scale(1.05);
+}
+.news-card-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background-color: var(--primary);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.news-card-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.news-card-meta {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+.news-card-meta i { margin-right: 4px; }
+.news-card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    color: #0f172a;
+    transition: color 0.2s;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.news-card-title a {
+    color: inherit;
+    text-decoration: none;
+}
+.news-card-title a:hover {
+    color: var(--primary);
+}
+.news-card-excerpt {
+    font-size: 0.88rem;
+    color: #475569;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.news-card-link {
+    margin-top: auto;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: gap 0.2s;
+}
+.news-card-link:hover {
+    gap: 10px;
+    color: #b71c1c;
+}
+
+/* Sidebar widget */
+.sidebar-widget {
+    background-color: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    border: 1px solid #f1f5f9;
+    margin-bottom: 30px;
+}
+.sidebar-widget-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.recent-post-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.recent-post-item:last-child { margin-bottom: 0; }
+.recent-post-img {
+    width: 65px;
+    height: 65px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.recent-post-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0 0 4px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.recent-post-title a { color: #0f172a; text-decoration: none; transition: color 0.2s; }
+.recent-post-title a:hover { color: var(--primary); }
+.recent-post-date { font-size: 0.74rem; color: #64748b; }
+</style>
+
+<!-- Hero Section -->
+<div class="news-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="news-hero-title">Tin Tức Công Nghệ</h1>
+                <p class="news-hero-subtitle">Cập nhật nhanh nhất tin tức thị trường điện thoại, máy tính, đánh giá sản phẩm mới, các mẹo vặt công nghệ và khuyến mãi hấp dẫn.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Section -->
+<div class="container pb-5">
+    <!-- Category Filter -->
+    <div class="news-nav">
+        <a href="<?= url('news') ?>" class="news-nav-link <?= empty($category) ? 'active' : '' ?>">Tất cả</a>
+        <a href="<?= url('news?category=cong-nghe') ?>" class="news-nav-link <?= $category === 'cong-nghe' ? 'active' : '' ?>">Tin Công Nghệ</a>
+        <a href="<?= url('news?category=danh-gia') ?>" class="news-nav-link <?= $category === 'danh-gia' ? 'active' : '' ?>">Đánh Giá Chi Tiết</a>
+        <a href="<?= url('news?category=khuyen-mai') ?>" class="news-nav-link <?= $category === 'khuyen-mai' ? 'active' : '' ?>">Khuyến Mãi Hot</a>
+        <a href="<?= url('news?category=meo-vat') ?>" class="news-nav-link <?= $category === 'meo-vat' ? 'active' : '' ?>">Mẹo Vặt Hay</a>
+    </div>
+
+    <div class="row g-4">
+        <!-- News List (Left) -->
+        <div class="col-lg-8">
+            <?php if (empty($newsList)): ?>
+                <div class="text-center py-5 bg-white rounded-4 border border-light shadow-sm">
+                    <img src="https://cdn-icons-png.flaticon.com/512/107/107831.png" alt="No news" style="width: 80px; opacity: 0.3; margin-bottom: 20px;">
+                    <h5 class="fw-bold">Chưa có bài viết nào</h5>
+                    <p class="text-muted small">Vui lòng quay lại sau để cập nhật bài viết mới.</p>
+                </div>
+            <?php else: ?>
+                <div class="row g-4">
+                    <?php foreach ($newsList as $item): ?>
+                        <div class="col-md-6">
+                            <article class="news-card-modern">
+                                <div class="news-card-img-wrap">
+                                    <span class="news-card-badge">
+                                        <?php 
+                                        if ($item['category'] === 'cong-nghe') echo 'Công nghệ';
+                                        elseif ($item['category'] === 'danh-gia') echo 'Đánh giá';
+                                        elseif ($item['category'] === 'khuyen-mai') echo 'Khuyến mãi';
+                                        elseif ($item['category'] === 'meo-vat') echo 'Mẹo vặt';
+                                        else echo e($item['category']);
+                                        ?>
+                                    </span>
+                                    <a href="<?= url('news/' . $item['slug']) ?>">
+                                        <img src="<?= productImage($item['featured_image']) ?>" alt="<?= e($item['title']) ?>">
+                                    </a>
+                                </div>
+                                <div class="news-card-body">
+                                    <div class="news-card-meta">
+                                        <span><i class="far fa-calendar-alt"></i><?= date('d/m/Y', strtotime($item['published_at'] ?? $item['created_at'])) ?></span>
+                                        <span><i class="far fa-eye"></i><?= number_format($item['view_count']) ?> lượt xem</span>
+                                    </div>
+                                    <h3 class="news-card-title">
+                                        <a href="<?= url('news/' . $item['slug']) ?>"><?= e($item['title']) ?></a>
+                                    </h3>
+                                    <p class="news-card-excerpt"><?= e($item['excerpt']) ?></p>
+                                    <a href="<?= url('news/' . $item['slug']) ?>" class="news-card-link">
+                                        Xem chi tiết <i class="fas fa-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </article>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                    <div class="mt-5">
+                        <?php
+                        $baseUrl = url('news');
+                        if (!empty($category)) {
+                            $baseUrl .= '?category=' . $category;
+                        }
+                        echo pagination($currentPage, $totalPages, $baseUrl);
+                        ?>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+
+        <!-- Sidebar Widgets (Right) -->
+        <div class="col-lg-4">
+            <!-- Search Widget -->
+            <div class="sidebar-widget">
+                <h4 class="sidebar-widget-title"><i class="fas fa-search"></i> Tìm kiếm bài viết</h4>
+                <form action="<?= url('news') ?>" method="GET">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Nhập từ khóa tìm kiếm..." style="border-radius: 8px 0 0 8px;">
+                        <button class="btn btn-danger" type="submit" style="border-radius: 0 8px 8px 0; background: var(--primary);"><i class="fas fa-search"></i></button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Promotion banner or Quick links -->
+            <div class="sidebar-widget">
+                <h4 class="sidebar-widget-title"><i class="fas fa-fire text-danger"></i> Sản phẩm bán chạy</h4>
+                <div class="d-flex flex-column gap-3">
+                    <p class="text-muted small mb-0">Liên hệ mua hàng nhanh chóng hoặc tham khảo các mẫu hot sale tại website.</p>
+                    <a href="<?= url('products') ?>" class="btn btn-outline-danger w-100" style="border-radius: 8px; font-weight: 600;">Xem tất cả sản phẩm</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require_once __DIR__ . '/../layouts/footer.php'; ?>

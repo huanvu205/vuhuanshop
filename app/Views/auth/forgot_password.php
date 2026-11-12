@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Lấy lại mật khẩu tài khoản <?= APP_NAME ?> - Nhập email để nhận hướng dẫn đặt lại mật khẩu">
+    <title>Quên mật khẩu - <?= APP_NAME ?></title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="<?= APP_URL ?>/public/css/style.css" rel="stylesheet">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body.auth-page {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 50%, #fff1f2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        /* Background decorations */
+        body.auth-page::before {
+            content: '';
+            position: fixed;
+            top: -150px; right: -150px;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(198,40,40,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        body.auth-page::after {
+            content: '';
+            position: fixed;
+            bottom: -100px; left: -100px;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(198,40,40,0.04) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Floating bubbles */
+        .fp-bubble {
+            position: fixed;
+            border-radius: 50%;
+            background: rgba(198,40,40,0.04);
+            animation: floatBubble linear infinite;
+            pointer-events: none;
+        }
+        @keyframes floatBubble {
+            0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        /* ===== TOP BRAND ===== */
+        .fp-brand-top {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            z-index: 10;
+        }
+
+        .fp-brand {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #c62828;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: -0.5px;
+        }
+        .fp-brand span { color: #7f0000; }
+
+        .fp-back-link {
+            font-size: 13px;
+            color: #6b7280;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+        .fp-back-link:hover { color: #c62828; }
+
+        /* ===== MAIN CARD ===== */
+        .fp-card {
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            border-radius: 24px;
+            box-shadow:
+                0 4px 6px rgba(0,0,0,0.04),
+                0 20px 60px rgba(0,0,0,0.08),
+                0 0 0 1px rgba(0,0,0,0.04);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+            animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* ===== CARD TOP (Icon area) ===== */
+        .fp-card-top {
+            background: linear-gradient(135deg, #c62828 0%, #9b1c1c 100%);
+            padding: 36px 40px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fp-card-top::before {
+            content: '';
+            position: absolute;
+            top: -40px; left: -40px;
+            width: 160px; height: 160px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+        .fp-card-top::after {
+            content: '';
+            position: absolute;
+            bottom: -30px; right: -30px;
+            width: 120px; height: 120px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 50%;
+        }
+
+        .fp-icon-wrap {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px; height: 80px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            animation: iconPulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.2); }
+            50%       { box-shadow: 0 0 0 12px rgba(255,255,255,0); }
+        }
+
+        .fp-icon-wrap i {
+            font-size: 2rem;
+            color: white;
+        }
+
+        .fp-card-top h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .fp-card-top p {
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.72);
+            margin: 0;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== STEPS INDICATOR ===== */
+        .fp-steps {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            padding: 0 40px;
+            position: relative;
+            margin-top: -1px;
+        }
+
+        .fp-step-item {
+            flex: 1;
+            text-align: center;
+            padding: 16px 8px;
+            position: relative;
+        }
+
+        .fp-step-item::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            right: -50%;
+            height: 2px;
+            background: #e5e7eb;
+            z-index: 0;
+        }
+        .fp-step-item:last-child::before { display: none; }
+
+        .fp-step-circle {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            border: 2px solid #e5e7eb;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #9ca3af;
+            margin: 0 auto 4px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s;
+        }
+        .fp-step-item.active .fp-step-circle {
+            background: #c62828;
+            border-color: #c62828;
+            color: white;
+        }
+        .fp-step-item.done .fp-step-circle {
+            background: #22c55e;
+            border-color: #22c55e;
+            color: white;
+        }
+        .fp-step-label {
+            font-size: 10px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+        .fp-step-item.active .fp-step-label { color: #c62828; font-weight: 600; }
+        .fp-step-item.done .fp-step-label { color: #22c55e; }
+
+        /* ===== FORM AREA ===== */
+        .fp-card-body {
+            padding: 32px 40px 36px;
+        }
+
+        /* Alert */
+        .alert-auth {
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 0.855rem;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            border: none;
+            animation: slideDown 0.3s ease both;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .alert-auth.success {
+            background: #f0fdf4;
+            color: #166534;
+            border-left: 4px solid #22c55e;
+        }
+        .alert-auth.error {
+            background: #fff5f5;
+            color: #9b1c1c;
+            border-left: 4px solid #ef4444;
+        }
+        .alert-auth.info {
+            background: #eff6ff;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        .alert-auth-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .alert-auth-body {}
+        .alert-auth-body strong { display: block; margin-bottom: 2px; }
+
+        /* Form elements */
+        .form-group-auth { margin-bottom: 20px; }
+
+        .form-label-auth {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper { position: relative; }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 14px;
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+        .input-wrapper:focus-within .input-icon { color: #c62828; }
+
+        .form-control-auth {
+            width: 100%;
+            padding: 13px 14px 13px 44px;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fafafa;
+            color: #1f2937;
+            outline: none;
+            transition: all 0.2s;
+            -webkit-appearance: none;
+        }
+        .form-control-auth:focus {
+            border-color: #c62828;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(198,40,40,0.09);
+        }
+        .form-control-auth.is-invalid {
+            border-color: #ef4444;
+            background: #fff8f8;
+        }
+
+        .invalid-feedback-auth {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.775rem;
+            color: #ef4444;
+            margin-top: 6px;
+        }
+
+        /* Hint text */
+        .form-hint {
+            font-size: 0.78rem;
+            color: #9ca3af;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        /* Submit button */
+        .btn-auth-primary {
+            width: 100%;
+            padding: 14px 24px;
+            font-size: 0.9375rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.3px;
+        }
+        .btn-auth-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(198,40,40,0.35);
+        }
+        .btn-auth-primary:active { transform: translateY(0); }
+        .btn-auth-primary:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-spinner {
+            display: none;
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Footer links */
+        .fp-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #f3f4f6;
+            flex-wrap: wrap;
+        }
+
+        .fp-footer a {
+            font-size: 0.8125rem;
+            color: #9ca3af;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+        .fp-footer a:hover { color: #c62828; }
+
+        .fp-footer a.primary {
+            color: #c62828;
+            font-weight: 600;
+        }
+
+        /* ===== SUCCESS STATE ===== */
+        .fp-success-state {
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        .fp-success-anim {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            animation: successBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+        @keyframes successBounce {
+            0%   { transform: scale(0); opacity: 0; }
+            60%  { transform: scale(1.15); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .fp-success-anim i { font-size: 2rem; color: white; }
+
+        .fp-success-state h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        .fp-success-state p {
+            font-size: 0.875rem;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+        .fp-success-state .email-highlight {
+            color: #c62828;
+            font-weight: 600;
+        }
+
+        .fp-resend-area {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .fp-resend-area p {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-bottom: 8px;
+        }
+        .btn-resend {
+            background: none;
+            border: 1.5px solid #c62828;
+            color: #c62828;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-resend:hover { background: #c62828; color: white; }
+        .btn-resend:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .countdown { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+
+        /* ===== SECURITY INFO ===== */
+        .fp-security-note {
+            margin-top: 20px;
+            padding: 12px 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .fp-security-note i { color: #22c55e; font-size: 14px; flex-shrink: 0; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 575.98px) {
+            body.auth-page { padding: 80px 12px 24px; }
+            .fp-card-top { padding: 28px 24px 32px; }
+            .fp-card-body { padding: 24px 24px 28px; }
+            .fp-steps { padding: 0 24px; }
+            .fp-brand-top { padding: 12px 16px; }
+        }
+    </style>
+</head>
+<body class="auth-page">
+
+    <!-- Floating bubbles for visual effect -->
+    <div class="fp-bubble" style="width:60px;height:60px;left:10%;animation-duration:8s;animation-delay:0s;"></div>
+    <div class="fp-bubble" style="width:40px;height:40px;left:30%;animation-duration:12s;animation-delay:3s;"></div>
+    <div class="fp-bubble" style="width:80px;height:80px;left:60%;animation-duration:10s;animation-delay:1s;"></div>
+    <div class="fp-bubble" style="width:30px;height:30px;left:80%;animation-duration:9s;animation-delay:5s;"></div>
+
+    <!-- Top brand bar -->
+    <div class="fp-brand-top">
+        <a href="<?= url() ?>" class="fp-brand">
+            <i class="fas fa-mobile-alt"></i>Vũ Huân <span>Shop</span>
+        </a>
+        <a href="<?= url('auth/login') ?>" class="fp-back-link">
+            <i class="fas fa-arrow-left"></i> Quay lại đăng nhập
+        </a>
+    </div>
+
+    <!-- Main Card -->
+    <div class="fp-card">
+
+        <!-- Card Top -->
+        <div class="fp-card-top">
+            <div class="fp-icon-wrap">
+                <i class="fas fa-key"></i>
+            </div>
+            <h1>Quên mật khẩu?</h1>
+            <p>Đừng lo lắng! Nhập email của bạn và chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu ngay lập tức.</p>
+        </div>
+
+        <!-- Steps -->
+        <div class="fp-steps">
+            <div class="fp-step-item <?= empty($emailSent) ? 'active' : 'done' ?>">
+                <div class="fp-step-circle">
+                    <?php if (!empty($emailSent)): ?>
+                        <i class="fas fa-check" style="font-size:11px"></i>
+                    <?php else: ?>
+                        1
+                    <?php endif; ?>
+                </div>
+                <div class="fp-step-label">Nhập email</div>
+            </div>
+            <div class="fp-step-item <?= !empty($emailSent) ? 'active' : '' ?>">
+                <div class="fp-step-circle">2</div>
+                <div class="fp-step-label">Kiểm tra hộp thư</div>
+            </div>
+            <div class="fp-step-item">
+                <div class="fp-step-circle">3</div>
+                <div class="fp-step-label">Đặt lại mật khẩu</div>
+            </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="fp-card-body">
+
+            <?php if (SMTP_USER === '' || SMTP_PASS === ''): ?>
+                <div class="alert alert-warning" role="alert">
+                    <i class="fas fa-triangle-exclamation me-2"></i>
+                    Chức năng gửi email hiện chưa được cấu hình trên máy chủ. Vui lòng liên hệ quản trị viên để thiết lập SMTP.
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($emailSent)): ?>
+                <!-- ===== SUCCESS STATE ===== -->
+                <div class="fp-success-state">
+                    <div class="fp-success-anim">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    <h2>Đã tiếp nhận yêu cầu</h2>
+                    <p>
+                        Nếu email đã đăng ký, hướng dẫn đặt lại mật khẩu sẽ được gửi tới<br>
+                        <span class="email-highlight"><?= e($sentToEmail ?? '') ?></span>
+                    </p>
+                    <?php if (SMTP_USER !== '' && SMTP_PASS !== ''): ?>
+                        <p style="margin-top:8px">
+                            Vui lòng kiểm tra hộp thư (kể cả mục Spam/Junk). Link có hiệu lực trong <strong>15 phút</strong>.
+                        </p>
+
+                        <div class="fp-resend-area">
+                            <p>Không nhận được email?</p>
+                            <form action="<?= url('auth/forgot-password') ?>" method="POST" id="resend-form">
+                                <?= csrfToken() ?>
+                                <input type="hidden" name="email" value="<?= e($sentToEmail ?? '') ?>">
+                                <input type="hidden" name="resend" value="1">
+                                <button type="submit" class="btn-resend" id="resend-btn">
+                                    <i class="fas fa-rotate-right me-1"></i> Gửi lại email
+                                </button>
+                            </form>
+                            <div class="countdown" id="resend-countdown"></div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+            <?php else: ?>
+                <!-- ===== FORM STATE ===== -->
+
+                <?php if (!empty($error)): ?>
+                    <div class="alert-auth error">
+                        <i class="fas fa-circle-exclamation alert-auth-icon"></i>
+                        <div class="alert-auth-body">
+                            <strong>Không thể gửi email</strong>
+                            <?= e($error) ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($info)): ?>
+                    <div class="alert-auth info">
+                        <i class="fas fa-circle-info alert-auth-icon"></i>
+                        <div class="alert-auth-body"><?= e($info) ?></div>
+                    </div>
+                <?php endif; ?>
+
+                <form id="forgot-form" action="<?= url('auth/forgot-password') ?>" method="POST" novalidate>
+                    <?= csrfToken() ?>
+
+                    <!-- Email Input -->
+                    <div class="form-group-auth">
+                        <label class="form-label-auth" for="forgot-email">
+                            Địa chỉ email đã đăng ký <span style="color:#ef4444">*</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-envelope"></i></span>
+                            <input
+                                type="email"
+                                id="forgot-email"
+                                name="email"
+                                class="form-control-auth <?= !empty($errors['email']) ? 'is-invalid' : '' ?>"
+                                placeholder="example@email.com"
+                                value="<?= e($_POST['email'] ?? '') ?>"
+                                autocomplete="email"
+                                autofocus
+                                required
+                            >
+                        </div>
+                        <?php if (!empty($errors['email'])): ?>
+                            <span class="invalid-feedback-auth">
+                                <i class="fas fa-circle-exclamation"></i>
+                                <?= e($errors['email']) ?>
+                            </span>
+                        <?php endif; ?>
+                        <p class="form-hint">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Nhập đúng email bạn đã dùng khi tạo tài khoản
+                        </p>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="btn-auth-primary" id="forgot-submit-btn">
+                        <span class="btn-spinner" id="forgot-spinner"></span>
+                        <i class="fas fa-paper-plane" id="forgot-btn-icon"></i>
+                        <span>Gửi hướng dẫn đặt lại mật khẩu</span>
+                    </button>
+
+                    <!-- Security note -->
+                    <div class="fp-security-note">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Link đặt lại mật khẩu chỉ có hiệu lực <strong>15 phút</strong> và chỉ dùng được một lần để bảo vệ tài khoản của bạn.</span>
+                    </div>
+
+                </form>
+
+            <?php endif; ?>
+
+            <!-- Footer Links -->
+            <div class="fp-footer">
+                <a href="<?= url('auth/login') ?>">
+                    <i class="fas fa-arrow-left"></i> Quay lại đăng nhập
+                </a>
+                <a href="<?= url('auth/register') ?>" class="primary">
+                    <i class="fas fa-user-plus"></i> Tạo tài khoản mới
+                </a>
+                <a href="<?= url() ?>">
+                    <i class="fas fa-home"></i> Trang chủ
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // ── Forgot form submit ──
+        var form      = document.getElementById('forgot-form');
+        var submitBtn = document.getElementById('forgot-submit-btn');
+        var spinner   = document.getElementById('forgot-spinner');
+        var btnIcon   = document.getElementById('forgot-btn-icon');
+
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                var emailEl = document.getElementById('forgot-email');
+                var email   = emailEl ? emailEl.value.trim() : '';
+                var emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                if (!email) {
+                    e.preventDefault();
+                    if (emailEl) emailEl.classList.add('is-invalid');
+                    return;
+                }
+                if (!emailRx.test(email)) {
+                    e.preventDefault();
+                    if (emailEl) emailEl.classList.add('is-invalid');
+                    return;
+                }
+
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    if (spinner) spinner.style.display = 'block';
+                    if (btnIcon) btnIcon.style.display = 'none';
+                }
+            });
+        }
+
+        // ── Input validation clear ──
+        var emailInput = document.getElementById('forgot-email');
+        if (emailInput) {
+            emailInput.addEventListener('input', function () {
+                this.classList.remove('is-invalid');
+            });
+        }
+
+        // ── Resend countdown (60 seconds) ──
+        var resendBtn       = document.getElementById('resend-btn');
+        var countdownEl     = document.getElementById('resend-countdown');
+        var resendSeconds   = 60;
+
+        if (resendBtn && countdownEl) {
+            // Start countdown immediately on page load (after email sent)
+            resendBtn.disabled = true;
+            var timer = setInterval(function () {
+                resendSeconds--;
+                countdownEl.textContent = 'Có thể gửi lại sau ' + resendSeconds + ' giây';
+                if (resendSeconds <= 0) {
+                    clearInterval(timer);
+                    resendBtn.disabled = false;
+                    countdownEl.textContent = '';
+                }
+            }, 1000);
+        }
+
+        // ── Auto-dismiss alerts ──
+        setTimeout(function () {
+            document.querySelectorAll('.alert-auth').forEach(function (el) {
+                el.style.transition = 'opacity 0.5s, transform 0.5s';
+                el.style.opacity    = '0';
+                el.style.transform  = 'translateY(-8px)';
+                setTimeout(function () { el.remove(); }, 500);
+            });
+        }, 6000);
+
+    })();
+    </script>
+</body>
+</html>

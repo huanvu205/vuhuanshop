@@ -1,0 +1,50 @@
+<?php
+class NewsAdminController extends Controller {
+    private $newsModel;
+    public function __construct() { parent::__construct(); $this->newsModel = new NewsModel(); }
+    
+    public function index() {
+        $this->requireStaff();
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $search = sanitize($_GET['q'] ?? '');
+        $status = sanitize($_GET['status'] ?? '');
+        $total = $this->newsModel->count($search, $status);
+        $this->view('admin.news.index', ['title' => 'Quản lý tin tức - Admin', 'newsList' => $this->newsModel->getAll($page, 20, $search, $status), 'search' => $search, 'filterStatus' => $status, 'currentPage' => $page, 'totalPages' => ceil($total / 20), 'total' => $total]);
+    }
+    
+    public function create() {
+        $this->requireStaff();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->validateCsrf();
+            $data = ['title' => sanitize($this->getInput('title', '')), 'content' => $this->getInput('content', ''), 'excerpt' => sanitize($this->getInput('excerpt', '')), 'category' => sanitize($this->getInput('category', 'general')), 'status' => $this->getInput('status', 'draft'), 'author_id' => $this->getUserId()];
+            if (!empty($_FILES['featured_image']['name'])) { $r = uploadImage($_FILES['featured_image'], 'news'); if ($r['success']) $data['featured_image'] = $r['path']; }
+            $this->newsModel->create($data);
+            setFlash('success', 'Thêm bài viết thành công');
+            $this->redirect(url('admin/news'));
+        }
+        $this->view('admin.news.create', ['title' => 'Thêm bài viết - Admin']);
+    }
+    
+    public function edit($id) {
+        $this->requireStaff();
+        $news = $this->newsModel->findById($id);
+        if (!$news) { setFlash('error', 'Bài viết không tồn tại'); $this->redirect(url('admin/news')); return; }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->validateCsrf();
+            $data = ['title' => sanitize($this->getInput('title', '')), 'content' => $this->getInput('content', ''), 'excerpt' => sanitize($this->getInput('excerpt', '')), 'category' => sanitize($this->getInput('category', 'general')), 'status' => $this->getInput('status', 'draft')];
+            $this->newsModel->update($id, $data);
+            if (!empty($_FILES['featured_image']['name'])) { $r = uploadImage($_FILES['featured_image'], 'news'); if ($r['success']) { /* update image */ } }
+            setFlash('success', 'Cập nhật bài viết thành công');
+            $this->redirect(url('admin/news'));
+        }
+        $this->view('admin.news.edit', ['title' => 'Sửa bài viết - Admin', 'news' => $news]);
+    }
+    
+    public function delete($id) {
+        $this->requireStaff();
+        $this->newsModel->delete($id);
+        setFlash('success', 'Đã xóa bài viết');
+        $this->redirect(url('admin/news'));
+    }
+}
+?>

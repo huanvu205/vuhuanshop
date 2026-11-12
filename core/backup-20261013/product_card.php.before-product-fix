@@ -1,0 +1,78 @@
+<?php
+// Shared product card partial
+$price = $product['price_discount'] ?? $product['price_sale'];
+$originalPrice = $product['price_sale'];
+$hasDiscount = $product['price_discount'] && $product['price_discount'] < $product['price_sale'];
+$discountPct = $hasDiscount ? discountPercent($originalPrice, $price) : $product['discount_percent'];
+$inStock = $product['stock_quantity'] > 0;
+$isWishlisted = false; // Default - controllers can override per-product
+?>
+<div class="product-card">
+    <a href="<?= url('products/' . $product['slug']) ?>" class="product-card-image d-block">
+        <?php if ($discountPct > 0): ?>
+        <div class="product-badge">
+            <span class="badge-discount">-<?= $discountPct ?>%</span>
+        </div>
+        <?php elseif (!empty($product['is_featured'])): ?>
+        <div class="product-badge">
+            <span class="badge-new">Nổi bật</span>
+        </div>
+        <?php endif; ?>
+        
+        <div class="product-card-actions">
+            <button class="btn-action btn-wishlist <?= $isWishlisted ? 'active' : '' ?>" 
+                    data-product="<?= $product['id'] ?>" 
+                    title="<?= $isWishlisted ? 'Bỏ yêu thích' : 'Yêu thích' ?>">
+                <i class="<?= $isWishlisted ? 'fas' : 'far' ?> fa-heart"></i>
+            </button>
+            <a href="<?= url('products/' . $product['slug']) ?>" class="btn-action" title="Xem chi tiết">
+                <i class="fas fa-eye"></i>
+            </a>
+        </div>
+        
+        <img src="<?= productImage($product['main_image']) ?>" 
+             alt="<?= e($product['name']) ?>"
+             loading="lazy"
+             onerror="this.src='<?= APP_URL ?>/public/images/no-image.png'">
+    </a>
+    
+    <div class="product-card-body">
+        <div class="product-brand"><?= e($product['brand_name'] ?? '') ?></div>
+        
+        <h3 class="product-name">
+            <a href="<?= url('products/' . $product['slug']) ?>"><?= e($product['name']) ?></a>
+        </h3>
+        
+        <div class="product-rating">
+            <?php if ($product['rating_count'] > 0): ?>
+                <?= renderStars($product['rating_avg']) ?>
+                <span class="rating-count">(<?= $product['rating_count'] ?>)</span>
+            <?php else: ?>
+                <span class="rating-placeholder" style="visibility: hidden;">&nbsp;</span>
+            <?php endif; ?>
+        </div>
+        
+        <div class="product-price">
+            <span class="price-current"><?= formatPrice($price) ?></span>
+            <?php if ($hasDiscount): ?>
+            <span class="price-original"><?= formatPrice($originalPrice) ?></span>
+            <?php endif; ?>
+        </div>
+        
+        <div class="product-card-footer mt-auto">
+            <?php if (!$inStock): ?>
+            <div class="stock-out mb-2"><i class="fas fa-times-circle me-1"></i>Tạm hết hàng</div>
+            <button class="btn-add-cart out-of-stock" disabled>Hết hàng</button>
+            <?php elseif ($product['stock_quantity'] <= 5): ?>
+            <div class="stock-low mb-2"><i class="fas fa-exclamation-triangle me-1"></i>Còn <?= $product['stock_quantity'] ?> sản phẩm</div>
+            <button class="btn-add-cart" data-product="<?= $product['id'] ?>">
+                <i class="fas fa-cart-plus me-1"></i>Thêm vào giỏ
+            </button>
+            <?php else: ?>
+            <button class="btn-add-cart" data-product="<?= $product['id'] ?>">
+                <i class="fas fa-cart-plus me-1"></i>Thêm vào giỏ
+            </button>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
